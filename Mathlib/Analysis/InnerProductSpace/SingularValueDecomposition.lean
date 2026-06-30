@@ -459,4 +459,252 @@ theorem norm_sub_truncation_eq (k : ℕ) :
   le_antisymm (norm_sub_truncation_le (T := T) (hn := hn) k)
     (singularValues_le_norm_sub_truncation (T := T) (hn := hn) k)
 
+/-! ## Milestone M3 — Eckart–Young–Mirsky optimality (operator norm)
+
+The rank-`k` truncation `A_k` is a **best** rank-`≤ k` approximation to `T` in the operator norm:
+for every `B : E →ₗ[𝕜] F` with `finrank (range B) ≤ k` (and `k < n`), the `k`-th singular value is
+a lower bound for `‖T - B‖`. Combined with `‖T - A_k‖ = σ_k` (`norm_sub_truncation_eq`), this shows
+`A_k` is optimal.
+
+The proof is a dimension count. Let `W` be the span of the top `k + 1` right singular vectors
+`v_0, …, v_k`; then `finrank W = k + 1`. By rank–nullity, `finrank (ker B) ≥ n - k`. Since
+`(k + 1) + (n - k) = n + 1 > n`, the subspaces `W` and `ker B` meet nontrivially: there is a unit
+vector `w ∈ W ∩ ker B`. As `w ∈ ker B`, `(T - B) w = T w`. As `w ∈ W`, its `v`-Fourier support
+lies in `{0, …, k}`, so `‖T w‖² = ∑_{i ≤ k} σ_i² ‖⟪v_i, w⟫‖² ≥ σ_k² ‖w‖² = σ_k²`. Hence
+`σ_k ≤ ‖(T - B) w‖ ≤ ‖T - B‖`. -/
+
+/-- **(M3) Parseval for the image.** `‖T x‖² = ∑ i, σ_i² · ‖⟪v_i, x⟫‖²`. This is
+`normSq_sub_truncation` specialized to `k = 0`, where the truncation `A_0` is the zero map. -/
+theorem normSq_image (x : E) :
+    ‖T x‖ ^ 2
+      = ∑ i : Fin n, T.singularValues i ^ 2 * ‖⟪T.rightSingularBasis hn i, x⟫_𝕜‖ ^ 2 := by
+  have h := normSq_sub_truncation (T := T) (hn := hn) 0 x
+  have hzero : T.truncation hn 0 x = 0 := by
+    rw [truncation_apply]
+    refine Finset.sum_eq_zero (fun i _ => ?_)
+    rw [if_neg (by omega)]
+  rw [hzero, sub_zero] at h
+  rw [h]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  rw [if_pos (Nat.zero_le _)]
+
+variable (T hn)
+
+/-- **(M3) the top-`(k+1)` right singular span.** `W = span 𝕜 {v_0, …, v_k}`, the span of the top
+`k + 1` right singular vectors. -/
+noncomputable def topSingularSpan {k : ℕ} (hk : k < n) : Submodule 𝕜 E :=
+  Submodule.span 𝕜 (Set.range (fun i : Fin (k + 1) => T.rightSingularBasis hn ⟨i, by omega⟩))
+
+variable {T hn}
+
+/-- **(M3) Fourier support of vectors in `W`.** If `w ∈ W = span {v_0, …, v_k}` and `k < (j : ℕ)`,
+then the `j`-th right-singular Fourier coefficient of `w` vanishes: `⟪v_j, w⟫ = 0`. -/
+theorem inner_eq_zero_of_mem_topSingularSpan {k : ℕ} (hk : k < n)
+    {w : E} (hw : w ∈ T.topSingularSpan hn hk) {j : Fin n} (hj : k < (j : ℕ)) :
+    ⟪T.rightSingularBasis hn j, w⟫_𝕜 = 0 := by
+  refine Submodule.span_induction ?_ ?_ ?_ ?_ hw
+  · rintro y ⟨i, rfl⟩
+    rw [(orthonormal_iff_ite.mp rightSingularBasis_orthonormal j ⟨i, by omega⟩)]
+    rw [if_neg]
+    intro h
+    have : (j : ℕ) = (i : ℕ) := by rw [h]
+    omega
+  · rw [inner_zero_right]
+  · intro y z _ _ hy hz
+    rw [inner_add_right, hy, hz, add_zero]
+  · intro a y _ hy
+    rw [inner_smul_right, hy, mul_zero]
+
+/-- **(M3) the generating family of `W` is orthonormal.** The family `i ↦ v_i` for `i < k + 1`,
+viewed inside `E`, is orthonormal (a subfamily of the orthonormal right singular basis). -/
+theorem orthonormal_topSingular_gen {k : ℕ} (hk : k < n) :
+    Orthonormal 𝕜 (fun i : Fin (k + 1) => T.rightSingularBasis hn ⟨i, by omega⟩) := by
+  have hinj : Function.Injective (fun i : Fin (k + 1) => (⟨i, by omega⟩ : Fin n)) := by
+    intro a b hab
+    simp only [Fin.mk.injEq] at hab
+    exact Fin.ext hab
+  exact rightSingularBasis_orthonormal.comp _ hinj
+
+/-- **(M3) `finrank W = k + 1`.** The top-`(k+1)` right singular span has dimension `k + 1`,
+because its `k + 1` orthonormal generators are linearly independent. -/
+theorem finrank_topSingularSpan {k : ℕ} (hk : k < n) :
+    finrank 𝕜 (T.topSingularSpan hn hk) = k + 1 := by
+  rw [topSingularSpan, finrank_span_eq_card (orthonormal_topSingular_gen hk).linearIndependent]
+  simp
+
+/-- **(M3) dimension count: `W` and `ker B` intersect nontrivially.** If `finrank (range B) ≤ k`
+and `k < n`, then `W ⊓ ker B ≠ ⊥`: there is a nonzero vector lying both in the top-`(k+1)` right
+singular span and in the kernel of `B`. The proof is the inclusion–exclusion bound
+`finrank (W ⊓ ker B) ≥ finrank W + finrank (ker B) − finrank E ≥ (k+1) + (n−k) − n = 1`. -/
+theorem exists_mem_topSingularSpan_inf_ker {k : ℕ} (hk : k < n) (B : E →ₗ[𝕜] F)
+    (hB : finrank 𝕜 (LinearMap.range B) ≤ k) :
+    ∃ w : E, w ∈ T.topSingularSpan hn hk ∧ w ∈ LinearMap.ker B ∧ w ≠ 0 := by
+  -- rank–nullity bound on the kernel
+  have hrn : finrank 𝕜 (LinearMap.range B) + finrank 𝕜 (LinearMap.ker B) = n := by
+    rw [B.finrank_range_add_finrank_ker, hn]
+  have hker : n - k ≤ finrank 𝕜 (LinearMap.ker B) := by omega
+  -- inclusion–exclusion for `W` and `ker B`
+  have hsup := Submodule.finrank_sup_add_finrank_inf_eq
+    (T.topSingularSpan hn hk) (LinearMap.ker B)
+  rw [finrank_topSingularSpan hk] at hsup
+  have hsuple : finrank 𝕜 ((T.topSingularSpan hn hk ⊔ LinearMap.ker B : Submodule 𝕜 E)) ≤ n := by
+    have h := Submodule.finrank_le (T.topSingularSpan hn hk ⊔ LinearMap.ker B)
+    rw [hn] at h
+    exact h
+  have hinf_pos : 0 < finrank 𝕜 ((T.topSingularSpan hn hk ⊓ LinearMap.ker B : Submodule 𝕜 E)) := by
+    omega
+  have hne : (T.topSingularSpan hn hk ⊓ LinearMap.ker B : Submodule 𝕜 E) ≠ ⊥ :=
+    Submodule.one_le_finrank_iff.mp hinf_pos
+  obtain ⟨w, hw, hwne⟩ := Submodule.exists_mem_ne_zero_of_ne_bot hne
+  rw [Submodule.mem_inf] at hw
+  exact ⟨w, hw.1, hw.2, hwne⟩
+
+/-- **(M3) the Rayleigh lower bound on `W`.** For `w ∈ W = span {v_0, …, v_k}`, the image norm is
+bounded below by `σ_k · ‖w‖`: `σ_k² · ‖w‖² ≤ ‖T w‖²`. Indeed `w`'s Fourier support lies in
+`{0, …, k}`, where every singular value dominates `σ_k`, so Parseval over that support gives the
+bound. -/
+theorem sq_singularValues_mul_normSq_le_normSq_image {k : ℕ} (hk : k < n)
+    {w : E} (hw : w ∈ T.topSingularSpan hn hk) :
+    T.singularValues k ^ 2 * ‖w‖ ^ 2 ≤ ‖T w‖ ^ 2 := by
+  rw [normSq_image (T := T) (hn := hn)]
+  have hpar : ‖w‖ ^ 2 = ∑ i : Fin n, ‖⟪T.rightSingularBasis hn i, w⟫_𝕜‖ ^ 2 :=
+    ((T.rightSingularBasis hn).sum_sq_norm_inner_right w).symm
+  rw [hpar, Finset.mul_sum]
+  refine Finset.sum_le_sum (fun i _ => ?_)
+  by_cases hik : (i : ℕ) ≤ k
+  · -- `σ_k ≤ σ_i`, so the term grows
+    have hmono : T.singularValues k ≤ T.singularValues i := T.singularValues_antitone hik
+    have hk2 : T.singularValues k ^ 2 ≤ T.singularValues i ^ 2 := by
+      apply sq_le_sq'
+      · nlinarith [T.singularValues_nonneg i, T.singularValues_nonneg k]
+      · exact hmono
+    nlinarith [hk2, sq_nonneg (‖⟪T.rightSingularBasis hn i, w⟫_𝕜‖),
+      norm_nonneg (⟪T.rightSingularBasis hn i, w⟫_𝕜)]
+  · -- `i > k`, so the Fourier coefficient vanishes
+    have hzero : ⟪T.rightSingularBasis hn i, w⟫_𝕜 = 0 :=
+      inner_eq_zero_of_mem_topSingularSpan (T := T) (hn := hn) hk hw (by omega)
+    rw [hzero]
+    simp
+
+/-- **(M3) the witness bound.** For a nonzero `w ∈ W` lying in `ker B`, the operator norm of
+`T - B` is at least `σ_k`. This packages the Rayleigh bound with `B w = 0` and `w ≠ 0`. -/
+theorem singularValues_le_of_mem_topSingularSpan_ker {k : ℕ} (hk : k < n) (B : E →ₗ[𝕜] F)
+    {w : E} (hwW : w ∈ T.topSingularSpan hn hk) (hwB : w ∈ LinearMap.ker B) (hwne : w ≠ 0) :
+    T.singularValues k ≤ ‖(T - B).toContinuousLinearMap‖ := by
+  have hwpos : 0 < ‖w‖ := by
+    rw [norm_pos_iff]; exact hwne
+  -- `(T - B) w = T w`, since `B w = 0`
+  have hBw : B w = 0 := by rwa [LinearMap.mem_ker] at hwB
+  have happ : (T - B).toContinuousLinearMap w = T w := by
+    rw [LinearMap.toContinuousLinearMap]
+    change (T - B) w = T w
+    rw [LinearMap.sub_apply, hBw, sub_zero]
+  -- Rayleigh bound: `σ_k · ‖w‖ ≤ ‖T w‖`
+  have hsq := sq_singularValues_mul_normSq_le_normSq_image (T := T) (hn := hn) hk hwW
+  have hnorm : T.singularValues k * ‖w‖ ≤ ‖T w‖ := by
+    have hsk : (0 : ℝ) ≤ T.singularValues k := T.singularValues_nonneg k
+    nlinarith [hsq, norm_nonneg (T w), mul_nonneg hsk (norm_nonneg w),
+      sq_nonneg (T.singularValues k * ‖w‖ - ‖T w‖)]
+  -- operator-norm bound
+  have hle := (T - B).toContinuousLinearMap.le_opNorm w
+  rw [happ] at hle
+  -- combine: `σ_k · ‖w‖ ≤ ‖T w‖ ≤ ‖(T-B)‖ · ‖w‖`, then cancel `‖w‖ > 0`
+  have hchain : T.singularValues k * ‖w‖ ≤ ‖(T - B).toContinuousLinearMap‖ * ‖w‖ :=
+    le_trans hnorm hle
+  exact le_of_mul_le_mul_right hchain hwpos
+
+include hn in
+/-- **(M3) ECKART–YOUNG–MIRSKY OPTIMALITY (operator norm).** The `k`-th singular value is a lower
+bound for the operator norm of `T - B` over **all** linear maps `B` of rank at most `k`:
+`T.singularValues k ≤ ‖(T - B).toContinuousLinearMap‖`. Combined with `norm_sub_truncation_eq`
+(`‖T - A_k‖ = σ_k`), this is the optimality of the rank-`k` truncation `A_k`: no rank-`≤ k` map
+approximates `T` better in operator norm. -/
+theorem eckart_young_mirsky {k : ℕ} (B : E →ₗ[𝕜] F) (hB : finrank 𝕜 (LinearMap.range B) ≤ k)
+    (hk : k < n) :
+    T.singularValues k ≤ ‖(T - B).toContinuousLinearMap‖ := by
+  obtain ⟨w, hwW, hwB, hwne⟩ :=
+    exists_mem_topSingularSpan_inf_ker (T := T) (hn := hn) hk B hB
+  exact singularValues_le_of_mem_topSingularSpan_ker (T := T) (hn := hn) hk B hwW hwB hwne
+
+/-- **(M3) optimality of the truncation `A_k` (operator norm), explicit form.** For any rank-`≤ k`
+map `B`, the truncation error `‖T - A_k‖ = σ_k` does not exceed `‖T - B‖`: the rank-`k` truncation
+is a best rank-`≤ k` approximation. -/
+theorem norm_sub_truncation_le_of_finrank_range_le {k : ℕ} (B : E →ₗ[𝕜] F)
+    (hB : finrank 𝕜 (LinearMap.range B) ≤ k) (hk : k < n) :
+    ‖(T - T.truncation hn k).toContinuousLinearMap‖ ≤ ‖(T - B).toContinuousLinearMap‖ := by
+  rw [norm_sub_truncation_eq (T := T) (hn := hn) k]
+  exact eckart_young_mirsky (T := T) (hn := hn) B hB hk
+
+
+/-! ## Milestone M2c-full — full operator factorization `T = D ∘ₗ V`
+
+We assemble the coordinate-level singular value decomposition into a genuine **operator-level**
+factorization. Define the "ΣU" map `D : EuclideanSpace 𝕜 (Fin n) →ₗ[𝕜] F` on the standard basis
+by `e i ↦ T (v i) = σ i • u i`, and prove the operator equation
+`T = D ∘ₗ (rightIsometry hn).toLinearEquiv.toLinearMap`, i.e. `T x = D (V x)` for all `x`. -/
+
+variable (T hn)
+
+/-- **(M2c-full) the "ΣU" map `D`.** The linear map `EuclideanSpace 𝕜 (Fin n) →ₗ[𝕜] F` sending the
+`i`-th standard basis vector `e i` to `T (v i) = σ i • u i`. Composed with the right isometry `V`
+it reconstructs `T`. -/
+noncomputable def sigmaU : EuclideanSpace 𝕜 (Fin n) →ₗ[𝕜] F :=
+  (EuclideanSpace.basisFun (Fin n) 𝕜).toBasis.constr 𝕜
+    (fun i => T (T.rightSingularBasis hn i))
+
+variable {T hn}
+
+/-- `D` sends the `i`-th standard basis vector to `T (v i)`. -/
+theorem sigmaU_single (i : Fin n) :
+    T.sigmaU hn (EuclideanSpace.single i (1 : 𝕜)) = T (T.rightSingularBasis hn i) := by
+  have hb : (EuclideanSpace.basisFun (Fin n) 𝕜).toBasis i = EuclideanSpace.single i (1 : 𝕜) := by
+    rw [OrthonormalBasis.coe_toBasis, EuclideanSpace.basisFun_apply]
+  rw [sigmaU, ← hb, Basis.constr_basis]
+
+/-- **(M2c-full) `D` expanded as a coordinate sum.** For any Euclidean vector `y`,
+`D y = ∑ i, y i • T (v i)`. -/
+theorem sigmaU_apply (y : EuclideanSpace 𝕜 (Fin n)) :
+    T.sigmaU hn y = ∑ i : Fin n, (y i) • T (T.rightSingularBasis hn i) := by
+  conv_lhs => rw [← (EuclideanSpace.basisFun (Fin n) 𝕜).sum_repr y, map_sum]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  rw [map_smul, EuclideanSpace.basisFun_repr,
+    EuclideanSpace.basisFun_apply, sigmaU_single]
+
+/-- **(M2c-full) reconstruction in image form.** `T x = ∑ i, ⟪v i, x⟫ • T (v i)`, a rephrasing of
+`reconstruction` collapsing `σ i • u i` back to `T (v i)`. -/
+theorem reconstruction_image (x : E) :
+    T x = ∑ i : Fin n, (⟪T.rightSingularBasis hn i, x⟫_𝕜) • T (T.rightSingularBasis hn i) := by
+  rw [reconstruction (T := T) (hn := hn)]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  rw [image_eq_smul (T := T) (hn := hn) i, smul_smul, smul_smul, mul_comm]
+
+/-- **(M2c-full) FULL OPERATOR FACTORIZATION.** The singular value decomposition as an
+operator-level equality: `T = D ∘ₗ V`, where `V = rightIsometry hn` is the right (domain) isometry
+and `D = sigmaU` is the "ΣU" map. Equivalently `T x = D (V x)` for all `x`. This realizes the SVD
+`T = U Σ V*` as a composition of linear maps, not merely coordinate-wise. -/
+theorem svd_factorization :
+    T = (T.sigmaU hn) ∘ₗ (T.rightIsometry hn).toLinearEquiv.toLinearMap := by
+  ext x
+  rw [LinearMap.comp_apply]
+  change T x = T.sigmaU hn (T.rightIsometry hn x)
+  rw [sigmaU_apply, reconstruction_image (T := T) (hn := hn)]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  congr 1
+  rw [rightIsometry]
+  exact ((T.rightSingularBasis hn).repr_apply_apply x i).symm
+
+/-- **(M2c-full) factorization, pointwise form.** `T x = D (V x)` for every `x`. -/
+theorem svd_factorization_apply (x : E) :
+    T x = T.sigmaU hn (T.rightIsometry hn x) := by
+  conv_lhs => rw [svd_factorization (T := T) (hn := hn)]
+  rfl
+
+/-- **(M2c-full) `D` on basis vectors is `σ • u`.** Cross-checks `sigmaU_single` against the
+`image_eq_smul` relation: `D (e i) = σ i • u i`. -/
+theorem sigmaU_single_eq_smul (i : Fin n) :
+    T.sigmaU hn (EuclideanSpace.single i (1 : 𝕜))
+      = (T.singularValues i : 𝕜) • T.leftSingularVector hn i := by
+  rw [sigmaU_single, image_eq_smul (T := T) (hn := hn) i]
+
+
 end LinearMap
