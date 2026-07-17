@@ -2047,10 +2047,12 @@ public import Mathlib.Analysis.InnerProductSpace.Harmonic.Constructions
 public import Mathlib.Analysis.InnerProductSpace.Harmonic.HarmonicContOnCl
 public import Mathlib.Analysis.InnerProductSpace.HilbertSchmidtSVD
 public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Mathlib.Analysis.InnerProductSpace.KyFanSingularValues
 public import Mathlib.Analysis.InnerProductSpace.Laplacian
 public import Mathlib.Analysis.InnerProductSpace.LaxMilgram
 public import Mathlib.Analysis.InnerProductSpace.LinearMap
 public import Mathlib.Analysis.InnerProductSpace.LinearPMap
+public import Mathlib.Analysis.InnerProductSpace.MatrixFrobeniusSVD
 public import Mathlib.Analysis.InnerProductSpace.MatrixSVD
 public import Mathlib.Analysis.InnerProductSpace.MeanErgodic
 public import Mathlib.Analysis.InnerProductSpace.MoorePenroseSVD
@@ -2062,6 +2064,7 @@ public import Mathlib.Analysis.InnerProductSpace.Orthogonal
 public import Mathlib.Analysis.InnerProductSpace.Orthonormal
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Analysis.InnerProductSpace.PolarDecompositionSVD
+public import Mathlib.Analysis.InnerProductSpace.PolarPartialIsometry
 public import Mathlib.Analysis.InnerProductSpace.Positive
 public import Mathlib.Analysis.InnerProductSpace.ProdL2
 public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
@@ -2071,8 +2074,10 @@ public import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
 public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 public import Mathlib.Analysis.InnerProductSpace.Rayleigh
 public import Mathlib.Analysis.InnerProductSpace.Reproducing
+public import Mathlib.Analysis.InnerProductSpace.SchattenSVD
 public import Mathlib.Analysis.InnerProductSpace.Semisimple
 public import Mathlib.Analysis.InnerProductSpace.SingularValueDecomposition
+public import Mathlib.Analysis.InnerProductSpace.SingularValuePerturbation
 public import Mathlib.Analysis.InnerProductSpace.SingularValues
 public import Mathlib.Analysis.InnerProductSpace.SingularValuesNorm
 public import Mathlib.Analysis.InnerProductSpace.Spectrum

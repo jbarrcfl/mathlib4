@@ -35,11 +35,11 @@ noncomputable def spectralNorm (A : Matrix m n 𝕜) : ℝ :=
   ‖A.toEuclideanLin.toContinuousLinearMap‖
 
 /-- The Hilbert--Schmidt norm of a matrix, transported from its Euclidean linear map. -/
-noncomputable def hilbertSchmidtNorm (A : Matrix m n 𝕜) : ℝ :=
+@[expose] noncomputable def hilbertSchmidtNorm (A : Matrix m n 𝕜) : ℝ :=
   A.toEuclideanLin.hilbertSchmidtNorm finrank_euclideanSpace
 
 /-- The squared Hilbert--Schmidt norm of a matrix. -/
-noncomputable def hilbertSchmidtNormSq (A : Matrix m n 𝕜) : ℝ :=
+@[expose] noncomputable def hilbertSchmidtNormSq (A : Matrix m n 𝕜) : ℝ :=
   A.toEuclideanLin.hilbertSchmidtNormSq finrank_euclideanSpace
 
 /-- The rank-`k` singular-value truncation of a matrix. -/

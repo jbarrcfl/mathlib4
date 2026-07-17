@@ -30,11 +30,11 @@ variable {𝕜 : Type*} [RCLike 𝕜]
 variable (T : E →ₗ[𝕜] F) {n : ℕ} (hn : finrank 𝕜 E = n)
 
 /-- The Hilbert-Schmidt (Frobenius) norm squared of T, defined via T's right singular basis. -/
-noncomputable def hilbertSchmidtNormSq : ℝ :=
+@[expose] noncomputable def hilbertSchmidtNormSq : ℝ :=
   ∑ i : Fin n, ‖T (T.rightSingularBasis hn i)‖ ^ 2
 
 /-- The Hilbert-Schmidt (Frobenius) norm of T. -/
-noncomputable def hilbertSchmidtNorm : ℝ :=
+@[expose] noncomputable def hilbertSchmidtNorm : ℝ :=
   Real.sqrt (T.hilbertSchmidtNormSq hn)
 
 variable {T hn}
